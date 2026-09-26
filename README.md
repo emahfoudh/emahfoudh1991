@@ -1,4 +1,4 @@
-# AI IT Operations — MVP (Phase 1 + 2 + 3)
+# AI IT Operations — MVP (Phase 1 + 2 + 3 + 4 + 5)
 
 Turns fragmented IT operational data into an executive report. Phases
 1-2 are synthetic-data only. Phase 3 adds the first real connector —
@@ -9,11 +9,12 @@ touched, or is permitted to touch, Driven Properties' systems.
 ## What this does right now
 
 ```
-synthetic CSVs (tickets + network samples)
+synthetic CSVs (tickets + network samples + vendor contracts)
    -> connectors (normalize into common data model)
-   -> KPI engines (SLA, MTTR, aging, recurring problems, bandwidth/latency/uptime)
+   -> KPI engines (SLA, MTTR, aging, recurring problems, bandwidth/latency/uptime,
+                    cost/renewal risk, license utilization)
    -> AI report generator (Claude, or a template fallback with no API key)
-   -> PDF + Excel executive report
+   -> PDF + Excel executive report + read-only dashboard
 ```
 
 Nothing here calls a real vendor API, and no employer credentials or
@@ -146,6 +147,27 @@ used by the synthetic pipeline.
 and pagination logic entirely with mocked HTTP responses — it never
 makes a real network call, so it runs the same in CI as anywhere else.
 
+## Phase 5: cost/contract module
+
+`connectors/synthetic_contracts.py` reads vendor/service/cost/renewal
+data with the same shape a real manual-entry form would eventually
+produce (vendor, service, annual cost, renewal date, license count,
+licenses in use). `engines/cost_engine.py` turns that into:
+
+- **Total tracked annual spend**, broken down by vendor
+- **Contracts renewing within 90 days**, sorted most-urgent first
+- **Underutilized licenses** (below 70% usage) — the cost-saving flag
+- **Contracts missing cost data**, flagged rather than guessed at
+
+This feeds into the AI report's `cost_observations` section and two
+new dashboard tiles (Annual Spend Tracked, Renewals Due Soon). Same
+discipline as every other engine: pure functions, no AI, fully unit
+tested (`tests/test_cost_engine.py`) — the numbers are right before
+the AI layer ever narrates them.
+
+`Vendor` and `Contract` tables (in `models/schema.py`) now store this
+data per-customer, same tenant-ready pattern as everything else.
+
 ## What's deliberately NOT built yet
 
-Real connectors for Sophos/FortiGate/M365 (Zoho Desk is the only real one so far), live dashboard, multi-tenancy, auth, cost/contract module, scheduling, real network/bandwidth data source. Each of these is designed for, not built, until proven at the current phase.
+Real connectors for Sophos/FortiGate/M365 (Zoho Desk is the only real one so far), multi-tenancy, auth, scheduling, real network/bandwidth data source, a manual-entry UI for contract data (currently CSV only). Each of these is designed for, not built, until proven at the current phase.

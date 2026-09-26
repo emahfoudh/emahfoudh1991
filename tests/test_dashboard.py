@@ -47,6 +47,40 @@ def test_render_dashboard_shows_kpi_tiles():
     assert "Insufficient data" in html  # empty sections still render the fallback
 
 
+def test_render_dashboard_shows_cost_tiles_when_present():
+    snapshot = SimpleNamespace(
+        period_label="Test Period",
+        computed_at=datetime(2026, 1, 1),
+        ticket_kpis={"insufficient_data": True},
+        network_kpis={},
+        cost_kpis={
+            "insufficient_data": False,
+            "total_annual_cost": 123000.0,
+            "contracts_renewing_soon": [{"vendor_name": "vendor_x"}],
+        },
+    )
+
+    html = render_dashboard(snapshot, None)
+
+    assert "123,000.0" in html
+    assert "Annual Spend Tracked" in html
+    assert "Renewals Due Soon" in html
+
+
+def test_render_dashboard_handles_missing_cost_kpis_attribute():
+    # Older snapshots (pre-Phase-5) won't have a cost_kpis attribute at all.
+    snapshot = SimpleNamespace(
+        period_label="Test Period",
+        computed_at=datetime(2026, 1, 1),
+        ticket_kpis={"insufficient_data": True},
+        network_kpis={},
+    )
+
+    html = render_dashboard(snapshot, None)  # must not raise AttributeError
+
+    assert "Test Period" in html
+
+
 def test_render_dashboard_handles_no_report_object():
     snapshot = SimpleNamespace(
         period_label="Test Period",

@@ -108,7 +108,34 @@ def generate_network_samples(path: str, days: int = 30) -> None:
         writer.writerows(rows)
 
 
+def generate_contracts(path: str, today: datetime) -> None:
+    contracts = [
+        # Renewing soon, fully priced, healthy utilization
+        {"vendor_name": "vendor_x", "service_name": "Email Security", "annual_cost": 45000,
+         "renewal_date": (today + timedelta(days=25)).date().isoformat(),
+         "license_count": 250, "licenses_in_use": 240},
+        # Renewing soon, underutilized licenses (cost-saving flag)
+        {"vendor_name": "vendor_y", "service_name": "Endpoint Protection", "annual_cost": 60000,
+         "renewal_date": (today + timedelta(days=60)).date().isoformat(),
+         "license_count": 500, "licenses_in_use": 210},
+        # Not renewing soon, healthy
+        {"vendor_name": "vendor_x", "service_name": "Backup", "annual_cost": 18000,
+         "renewal_date": (today + timedelta(days=210)).date().isoformat(),
+         "license_count": 50, "licenses_in_use": 48},
+        # Missing cost data (flagged rather than guessed)
+        {"vendor_name": "vendor_z", "service_name": "Firewall Support", "annual_cost": "",
+         "renewal_date": (today + timedelta(days=10)).date().isoformat(),
+         "license_count": "", "licenses_in_use": ""},
+    ]
+
+    with open(path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=list(contracts[0].keys()))
+        writer.writeheader()
+        writer.writerows(contracts)
+
+
 if __name__ == "__main__":
     generate_tickets("data/sample_tickets.csv")
     generate_network_samples("data/sample_network.csv")
-    print("Synthetic data written to data/sample_tickets.csv and data/sample_network.csv")
+    generate_contracts("data/sample_contracts.csv", datetime.now())
+    print("Synthetic data written to data/sample_tickets.csv, data/sample_network.csv, data/sample_contracts.csv")

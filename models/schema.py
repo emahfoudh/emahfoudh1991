@@ -80,6 +80,7 @@ class KPISnapshot(Base):
     period_label = Column(String, nullable=False)
     ticket_kpis = Column(JSON)
     network_kpis = Column(JSON)
+    cost_kpis = Column(JSON)
     recurring_categories = Column(JSON)
     computed_at = Column(DateTime, default=datetime.utcnow)
 
@@ -115,10 +116,12 @@ class Contract(Base):
     id = Column(Integer, primary_key=True)
     customer_id = Column(Integer, ForeignKey("customers.id"), nullable=False)
     vendor_id = Column(Integer, ForeignKey("vendors.id"), nullable=True)
+    vendor_name = Column(String, nullable=True)
     service_name = Column(String)
     annual_cost = Column(Float, nullable=True)
     renewal_date = Column(DateTime, nullable=True)
     license_count = Column(Integer, nullable=True)
+    licenses_in_use = Column(Integer, nullable=True)
 
 
 class SecurityEvent(Base):

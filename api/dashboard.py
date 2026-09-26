@@ -67,19 +67,24 @@ def render_empty_state() -> str:
 def render_dashboard(snapshot, report) -> str:
     ticket_kpis = snapshot.ticket_kpis or {}
     network_kpis = snapshot.network_kpis or {}
+    cost_kpis = getattr(snapshot, "cost_kpis", None) or {}
     ai_report = report.ai_report_json or {} if report else {}
 
-    tiles_html = ""
+    tiles = []
     if not ticket_kpis.get("insufficient_data"):
-        tiles_html = "<div class='tiles'>" + "".join(
-            [
-                _kpi_tile(ticket_kpis.get("total_tickets", "-"), "Total Tickets"),
-                _kpi_tile(ticket_kpis.get("open_tickets", "-"), "Open"),
-                _kpi_tile(f"{ticket_kpis.get('sla_compliance_pct', '-')}%", "SLA Compliance"),
-                _kpi_tile(ticket_kpis.get("mttr_hours", "-"), "MTTR (hrs)"),
-                _kpi_tile(len(network_kpis.get("flagged_sites", [])), "Sites Flagged"),
-            ]
-        ) + "</div>"
+        tiles += [
+            _kpi_tile(ticket_kpis.get("total_tickets", "-"), "Total Tickets"),
+            _kpi_tile(ticket_kpis.get("open_tickets", "-"), "Open"),
+            _kpi_tile(f"{ticket_kpis.get('sla_compliance_pct', '-')}%", "SLA Compliance"),
+            _kpi_tile(ticket_kpis.get("mttr_hours", "-"), "MTTR (hrs)"),
+            _kpi_tile(len(network_kpis.get("flagged_sites", [])), "Sites Flagged"),
+        ]
+    if cost_kpis and not cost_kpis.get("insufficient_data"):
+        tiles += [
+            _kpi_tile(f"{cost_kpis.get('total_annual_cost', 0):,}", "Annual Spend Tracked"),
+            _kpi_tile(len(cost_kpis.get("contracts_renewing_soon", [])), "Renewals Due Soon"),
+        ]
+    tiles_html = "<div class='tiles'>" + "".join(tiles) + "</div>" if tiles else ""
 
     return f"""
     <html><head><title>AI IT Operations Dashboard</title>{_STYLE}</head><body>

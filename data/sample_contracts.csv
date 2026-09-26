@@ -1,0 +1,5 @@
+vendor_name,service_name,annual_cost,renewal_date,license_count,licenses_in_use
+vendor_x,Email Security,45000,2026-10-21,250,240
+vendor_y,Endpoint Protection,60000,2026-11-25,500,210
+vendor_x,Backup,18000,2027-04-24,50,48
+vendor_z,Firewall Support,,2026-10-06,,

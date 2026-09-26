@@ -11,6 +11,7 @@ from models.persistence import (
     get_latest_kpi_snapshot,
     get_latest_report,
     get_or_create_synthetic_customer,
+    persist_contracts,
     persist_kpi_snapshot,
     persist_network_samples,
     persist_report,
@@ -87,3 +88,35 @@ def test_persist_tickets_and_network_samples_roundtrip():
     # so absence of an exception is the contract being tested here.
     persist_tickets(engine, customer_id, tickets)
     persist_network_samples(engine, customer_id, samples)
+
+
+def test_persist_contracts_roundtrip_including_missing_renewal_date():
+    engine = _fresh_engine()
+    customer_id = get_or_create_synthetic_customer(engine)
+
+    contracts = [
+        {
+            "vendor_name": "vendor_x", "service_name": "Email Security",
+            "annual_cost": 45000.0, "renewal_date": "2026-06-01",
+            "license_count": 250, "licenses_in_use": 240,
+        },
+        {
+            "vendor_name": "vendor_z", "service_name": "Firewall Support",
+            "annual_cost": None, "renewal_date": None,
+            "license_count": None, "licenses_in_use": None,
+        },
+    ]
+
+    # Should not raise, including the None renewal_date case.
+    persist_contracts(engine, customer_id, contracts)
+
+
+def test_persist_kpi_snapshot_stores_cost_kpis():
+    engine = _fresh_engine()
+    customer_id = get_or_create_synthetic_customer(engine)
+
+    cost_kpis = {"insufficient_data": False, "total_annual_cost": 123000.0}
+    persist_kpi_snapshot(engine, customer_id, "Test Period", {}, {}, [], cost_kpis)
+
+    latest = get_latest_kpi_snapshot(engine, customer_id)
+    assert latest.cost_kpis["total_annual_cost"] == 123000.0

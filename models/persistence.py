@@ -6,7 +6,7 @@ pipeline logic itself.
 
 from datetime import datetime
 
-from models.schema import Customer, KPISnapshot, NetworkSample, Report, Ticket, get_session
+from models.schema import Contract, Customer, KPISnapshot, NetworkSample, Report, Ticket, get_session
 
 SYNTHETIC_CUSTOMER_NAME = "Synthetic Demo Tenant"
 
@@ -63,8 +63,31 @@ def persist_network_samples(engine, customer_id: int, samples: list[dict]) -> No
         session.commit()
 
 
+def persist_contracts(engine, customer_id: int, contracts: list[dict]) -> None:
+    with get_session(engine) as session:
+        for c in contracts:
+            session.add(
+                Contract(
+                    customer_id=customer_id,
+                    vendor_name=c["vendor_name"],
+                    service_name=c["service_name"],
+                    annual_cost=c["annual_cost"],
+                    renewal_date=datetime.fromisoformat(c["renewal_date"]) if c["renewal_date"] else None,
+                    license_count=c["license_count"],
+                    licenses_in_use=c["licenses_in_use"],
+                )
+            )
+        session.commit()
+
+
 def persist_kpi_snapshot(
-    engine, customer_id: int, period_label: str, ticket_kpis: dict, network_kpis: dict, recurring: list[dict]
+    engine,
+    customer_id: int,
+    period_label: str,
+    ticket_kpis: dict,
+    network_kpis: dict,
+    recurring: list[dict],
+    cost_kpis: dict | None = None,
 ) -> int:
     with get_session(engine) as session:
         snapshot = KPISnapshot(
@@ -72,6 +95,7 @@ def persist_kpi_snapshot(
             period_label=period_label,
             ticket_kpis=ticket_kpis,
             network_kpis=network_kpis,
+            cost_kpis=cost_kpis,
             recurring_categories=recurring,
         )
         session.add(snapshot)

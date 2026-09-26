@@ -28,7 +28,13 @@ Respond with ONLY valid JSON matching this exact shape:
 }
 """
 
-def build_user_prompt(period_label: str, ticket_kpis: dict, network_kpis: dict, recurring: list[dict]) -> str:
+def build_user_prompt(
+    period_label: str,
+    ticket_kpis: dict,
+    network_kpis: dict,
+    recurring: list[dict],
+    cost_kpis: dict | None = None,
+) -> str:
     import json
 
     payload = {
@@ -36,6 +42,7 @@ def build_user_prompt(period_label: str, ticket_kpis: dict, network_kpis: dict, 
         "ticket_kpis": ticket_kpis,
         "network_kpis": network_kpis,
         "recurring_categories": recurring,
+        "cost_kpis": cost_kpis or {"insufficient_data": True},
     }
     return (
         "Here is the aggregated operational data for this reporting period. "
