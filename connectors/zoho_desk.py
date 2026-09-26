@@ -66,16 +66,20 @@ class ZohoDeskConnector(Connector):
         }
 
     def fetch(self, since: datetime | None = None) -> list[dict]:
-        """Paginate through GET /desk/v1/tickets. Zoho returns up to 100
-        records per page via `from`/`limit`; we stop once a page comes
-        back short, which means we've reached the end."""
+        """Paginate through GET /api/v1/tickets. Zoho Desk's API lives on
+        desk.zoho.<region> with an /api/v1/ path — NOT the generic
+        api_domain (www.zohoapis.<region>) the OAuth token response
+        returns, which is shared across other Zoho products (CRM, etc.)
+        and doesn't serve Desk endpoints. Zoho returns up to 100 records
+        per page via `from`/`limit`; we stop once a page comes back
+        short, which means we've reached the end."""
         tickets: list[dict] = []
         start = 0
         page_size = 100
 
         while True:
             response = requests.get(
-                f"{self.api_domain}/desk/v1/tickets",
+                f"{self.api_domain}/api/v1/tickets",
                 headers=self._headers(),
                 params={"from": start, "limit": page_size, "sortBy": "createdTime"},
                 timeout=30,
