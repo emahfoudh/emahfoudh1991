@@ -1,20 +1,23 @@
 """
-PDF export via WeasyPrint — styled from plain HTML/CSS, which is far
-easier to make look "executive" than drawing a PDF by hand with
-reportlab. Renders the same ai_report/KPI objects Excel export uses.
+PDF export via xhtml2pdf — styled from plain HTML/CSS, pure Python
+with no native system libraries required (unlike WeasyPrint, which
+needs GTK/Pango installed separately and fails hard on a stock
+Windows machine). Renders the same ai_report/KPI objects Excel
+export uses. xhtml2pdf's CSS support is more limited than
+WeasyPrint's (no flexbox/grid), so layout here uses plain tables.
 """
 
-from weasyprint import HTML
+from xhtml2pdf import pisa
 
 _STYLE = """
 <style>
-  body { font-family: Helvetica, Arial, sans-serif; color: #1a1a1a; margin: 40px; }
+  body { font-family: Helvetica, Arial, sans-serif; color: #1a1a1a; margin: 20px; }
   h1 { font-size: 20px; border-bottom: 2px solid #0f5c5c; padding-bottom: 8px; }
   h2 { font-size: 14px; color: #0f5c5c; margin-top: 24px; }
-  .kpi-row { display: flex; gap: 24px; margin: 12px 0; }
-  .kpi { border: 1px solid #ddd; border-radius: 6px; padding: 10px 16px; }
-  .kpi .value { font-size: 20px; font-weight: bold; }
-  .kpi .label { font-size: 11px; color: #666; }
+  table.kpi-row { width: 100%; margin: 12px 0; border-collapse: separate; border-spacing: 12px 0; }
+  table.kpi-row td { border: 1px solid #ddd; border-radius: 4px; padding: 10px 16px; width: 25%; }
+  .kpi-value { font-size: 20px; font-weight: bold; display: block; }
+  .kpi-label { font-size: 11px; color: #666; }
   ul { margin: 4px 0 12px 20px; padding: 0; font-size: 12px; }
   li { margin-bottom: 4px; }
   p { font-size: 12px; }
@@ -32,12 +35,14 @@ def export_pdf(path: str, period_label: str, ticket_kpis: dict, network_kpis: di
     kpi_html = ""
     if not ticket_kpis.get("insufficient_data"):
         kpi_html = f"""
-        <div class="kpi-row">
-          <div class="kpi"><div class="value">{ticket_kpis['total_tickets']}</div><div class="label">Total Tickets</div></div>
-          <div class="kpi"><div class="value">{ticket_kpis['open_tickets']}</div><div class="label">Open</div></div>
-          <div class="kpi"><div class="value">{ticket_kpis.get('sla_compliance_pct', '-')}%</div><div class="label">SLA Compliance</div></div>
-          <div class="kpi"><div class="value">{ticket_kpis.get('mttr_hours', '-')}</div><div class="label">MTTR (hours)</div></div>
-        </div>
+        <table class="kpi-row">
+          <tr>
+            <td><span class="kpi-value">{ticket_kpis['total_tickets']}</span><span class="kpi-label">Total Tickets</span></td>
+            <td><span class="kpi-value">{ticket_kpis['open_tickets']}</span><span class="kpi-label">Open</span></td>
+            <td><span class="kpi-value">{ticket_kpis.get('sla_compliance_pct', '-')}%</span><span class="kpi-label">SLA Compliance</span></td>
+            <td><span class="kpi-value">{ticket_kpis.get('mttr_hours', '-')}</span><span class="kpi-label">MTTR (hours)</span></td>
+          </tr>
+        </table>
         """
 
     flagged = network_kpis.get("flagged_sites", [])
@@ -65,4 +70,8 @@ def export_pdf(path: str, period_label: str, ticket_kpis: dict, network_kpis: di
       {_list_html(ai_report.get('management_attention_items', []))}
     </body></html>
     """
-    HTML(string=html).write_pdf(path)
+
+    with open(path, "wb") as f:
+        result = pisa.CreatePDF(html, dest=f)
+    if result.err:
+        raise RuntimeError(f"PDF generation failed with {result.err} error(s)")
