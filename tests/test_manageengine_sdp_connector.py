@@ -44,6 +44,25 @@ SAMPLE_REQUEST_CLOSED = {
     "technician": {"name": "engineer_b"},
 }
 
+# Shape observed against a real live instance: status has both "name"
+# and "internal_name", and category/priority are absent from the
+# default list response entirely (not null - the keys don't exist).
+SAMPLE_REQUEST_LIVE_SHAPE_CANCELED = {
+    "id": "108687000000700001",
+    "subject": "Real ticket",
+    "status": {
+        "in_progress": False,
+        "internal_name": "Canceled",
+        "stop_timer": False,
+        "color": "#cacaca",
+        "name": "Canceled",
+        "id": "108687000000706001",
+    },
+    "created_time": {"value": "1581236175698"},
+    "due_by_time": None,
+    "technician": {"name": "Some Technician"},
+}
+
 
 def test_parse_sdp_datetime_handles_epoch_ms_dict():
     dt = _parse_sdp_datetime({"value": "1735689600000"})
@@ -60,6 +79,21 @@ def test_parse_sdp_datetime_rejects_unrecognized_shape():
 
     with pytest.raises(ValueError):
         _parse_sdp_datetime(12345)
+
+
+def test_normalize_canceled_status_counts_as_closed():
+    """
+    Regression test for the live bug: a real "Canceled" ticket was
+    incorrectly counted as open because the status matching only
+    checked for "closed"/"resolved", not other terminal states.
+    """
+    connector = ManageEngineSDPConnector()
+    normalized = connector.normalize([SAMPLE_REQUEST_LIVE_SHAPE_CANCELED])
+
+    ticket = normalized[0]
+    assert ticket["status"] == "closed"
+    assert ticket["category"] == "Uncategorized"  # correctly absent, not a bug
+    assert ticket["priority"] == "Medium"  # correctly absent, not a bug
 
 
 def test_normalize_open_request_computes_sla_from_due_by_time():

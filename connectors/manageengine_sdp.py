@@ -118,15 +118,26 @@ class ManageEngineSDPConnector(Connector):
         normalized = []
         for t in raw_records:
             opened_at = _parse_sdp_datetime(t["created_time"])
-            closed_at = _parse_sdp_datetime(t["completed_time"]) if t.get("completed_time") else None
+            # Field name for closure time is unconfirmed - try both
+            # observed candidates rather than assuming one.
+            closed_time_raw = t.get("completed_time") or t.get("resolved_time")
+            closed_at = _parse_sdp_datetime(closed_time_raw) if closed_time_raw else None
             due_date = _parse_sdp_datetime(t["due_by_time"]) if t.get("due_by_time") else None
 
             sla_target_hours = (
                 round((due_date - opened_at).total_seconds() / 3600, 1) if due_date else DEFAULT_SLA_HOURS
             )
 
-            status_name = (t.get("status", {}) or {}).get("name", "").lower()
-            status = "closed" if status_name in ("closed", "resolved") else "open"
+            status_obj = t.get("status", {}) or {}
+            status_name = (status_obj.get("internal_name") or status_obj.get("name") or "").lower()
+            # Status names are admin-configurable per instance, so this list
+            # covers the common terminal states observed in practice
+            # (confirmed against a live "Canceled" ticket that was
+            # incorrectly counted as open before this fix). Not
+            # exhaustive - a custom terminal status name would still be
+            # missed, which is a real limitation, not a hidden one.
+            TERMINAL_STATUSES = {"closed", "resolved", "cancelled", "canceled"}
+            status = "closed" if status_name in TERMINAL_STATUSES else "open"
 
             normalized.append(
                 {

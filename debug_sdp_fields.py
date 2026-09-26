@@ -27,7 +27,17 @@ import requests
 response = requests.get(
     f"{sdp.api_domain}/api/v3/requests",
     headers=sdp._headers(),
-    params={"input_data": json.dumps({"list_info": {"row_count": 1, "start_index": 1}})},
+    params={
+        "input_data": json.dumps(
+            {
+                "list_info": {
+                    "row_count": 1,
+                    "start_index": 1,
+                    "fields_required": ["priority", "category", "subcategory", "status", "resolved_time", "completed_time"],
+                }
+            }
+        )
+    },
     timeout=30,
 )
 response.raise_for_status()
