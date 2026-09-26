@@ -68,6 +68,9 @@ def main():
 
     ai_report = generate_report(period_label, ticket_kpis, network_kpis, recurring)
     print(f"[ai] report generated via: {ai_report.get('generated_by', 'unknown')}")
+    if ai_report.get("ai_error"):
+        print(f"[ai] fell back because: {ai_report['ai_error']}")
+    print(f"[ai] ANTHROPIC_API_KEY present: {bool(os.environ.get('ANTHROPIC_API_KEY'))}")
 
     pdf_path = os.path.join(outdir, "zoho_live_report.pdf")
     excel_path = os.path.join(outdir, "zoho_live_report.xlsx")
