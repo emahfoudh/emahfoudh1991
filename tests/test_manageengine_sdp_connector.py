@@ -110,6 +110,28 @@ def test_authenticate_sets_access_token(mock_post):
 
 
 @patch("connectors.manageengine_sdp.requests.get")
+def test_fetch_calls_correct_url_without_portal_in_path(mock_get):
+    """
+    Regression test for the live 404 found during real testing: the
+    portal name must NOT appear in the URL path. If this test starts
+    failing because the path changed again, that's a deliberate
+    decision to re-verify against a live instance, not a silent revert.
+    """
+    response = MagicMock()
+    response.json.return_value = {"requests": []}
+    response.raise_for_status.return_value = None
+    mock_get.return_value = response
+
+    connector = ManageEngineSDPConnector()
+    connector._access_token = "fake_access_token"
+    connector.fetch()
+
+    called_url = mock_get.call_args[0][0]
+    assert called_url == "https://sdpondemand.manageengine.com/api/v3/requests"
+    assert "driven" not in called_url
+
+
+@patch("connectors.manageengine_sdp.requests.get")
 def test_fetch_paginates_until_short_page(mock_get):
     full_page = [{"id": str(i), "created_time": {"value": "1735689600000"}} for i in range(100)]
     short_page = [{"id": "100", "created_time": {"value": "1735689600000"}}]

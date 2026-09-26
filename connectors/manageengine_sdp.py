@@ -71,11 +71,12 @@ class ManageEngineSDPConnector(Connector):
 
     def fetch(self, since: datetime | None = None) -> list[dict]:
         """
-        Paginate through GET /app/{portal}/api/v3/requests — read-only,
-        no other HTTP method is ever used. The exact path below is a
-        best-guess starting point based on SDP Cloud's public API docs
-        and WILL likely need correction after the first live call,
-        exactly like the Zoho Desk connector did.
+        Paginate through GET /api/v3/requests — read-only, no other HTTP
+        method is ever used. An earlier version of this connector
+        included /app/{portal}/ in the path and got a live 404; this
+        path assumes the tenant/portal is instead resolved from the
+        OAuth token itself. Still unverified whether THIS path is
+        correct — read the next live response before assuming it works.
         """
         tickets: list[dict] = []
         start_index = 1
@@ -89,7 +90,7 @@ class ManageEngineSDPConnector(Connector):
                 "sort_order": "asc",
             }
             response = requests.get(
-                f"{self.api_domain}/app/{self.portal_name}/api/v3/requests",
+                f"{self.api_domain}/api/v3/requests",
                 headers=self._headers(),
                 params={"input_data": _json_dumps({"list_info": list_info})},
                 timeout=30,
