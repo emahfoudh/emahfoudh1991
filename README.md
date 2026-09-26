@@ -1,9 +1,10 @@
-# AI IT Operations — MVP (Phase 1 + Phase 2)
+# AI IT Operations — MVP (Phase 1 + 2 + 3)
 
-Turns fragmented IT operational data into an executive report. This
-is the MVP: synthetic data only, no live connection to any real
-company's systems (including Driven Properties — this project is
-fully isolated from that production environment).
+Turns fragmented IT operational data into an executive report. Phases
+1-2 are synthetic-data only. Phase 3 adds the first real connector —
+Zoho Desk — but ONLY against a personal sandbox org, never a real
+employer's tenant. This project has no code path that has ever
+touched, or is permitted to touch, Driven Properties' systems.
 
 ## What this does right now
 
@@ -95,6 +96,41 @@ be served over HTTP, which is what a future dashboard will build on.
 - **Every number has a test.** SLA%, MTTR, aging, and network flagging are pure functions with unit tests. This is what makes the eventual "trust me, this dashboard is right" conversation with a COO defensible — the math is auditable, independent of whether the AI wording is good that day.
 - **Secrets never touch git.** `.env` is gitignored; `.env.example` shows the shape with no real values. This habit is what makes a future real-customer integration safe to build on top of this codebase without re-architecting security in.
 
+## Phase 3: real connector (Zoho Desk sandbox)
+
+`connectors/zoho_desk.py` is the first connector that calls a real
+vendor API instead of reading a CSV. It authenticates via OAuth
+refresh token (never a hardcoded credential), fetches tickets with
+pagination, and normalizes them onto the exact same Ticket shape the
+synthetic connector produces — nothing downstream needed to change.
+
+**This must only ever point at a personal sandbox org**, created and
+owned separately from any employer's Zoho tenant. Set these in your
+local `.env` (see `.env.example`):
+
+```
+ZOHO_CLIENT_ID=...
+ZOHO_CLIENT_SECRET=...
+ZOHO_REFRESH_TOKEN=...
+ZOHO_API_DOMAIN=https://www.zohoapis.ae   # matches your Zoho data center
+ZOHO_ORG_ID=...
+```
+
+Run it against your real sandbox tickets:
+
+```bash
+.venv/bin/pip install -r requirements.txt
+.venv/bin/python run_zoho_pipeline.py
+```
+
+This produces `output/zoho_live_report.pdf` / `.xlsx` from your actual
+sandbox tickets, and persists them to the same `ai_it_operations.db`
+used by the synthetic pipeline.
+
+`tests/test_zoho_desk_connector.py` covers the connector's parsing
+and pagination logic entirely with mocked HTTP responses — it never
+makes a real network call, so it runs the same in CI as anywhere else.
+
 ## What's deliberately NOT built yet
 
-Real vendor connectors (Zoho/Sophos/FortiGate/M365), live dashboard, multi-tenancy, auth, cost/contract module, scheduling. See the architecture roadmap discussed with the project owner for phased build-out — each of those is designed for, not built, until this MVP loop is proven.
+Real connectors for Sophos/FortiGate/M365 (Zoho Desk is the only real one so far), live dashboard, multi-tenancy, auth, cost/contract module, scheduling, real network/bandwidth data source. Each of these is designed for, not built, until proven at the current phase.
