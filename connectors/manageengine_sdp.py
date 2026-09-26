@@ -93,6 +93,22 @@ class ManageEngineSDPConnector(Connector):
                 "start_index": start_index,
                 "sort_field": "created_time",
                 "sort_order": "asc",
+                # fields_required REPLACES the default field set rather
+                # than adding to it (confirmed live) - so every field
+                # normalize() needs must be listed explicitly, including
+                # ones that were present by default before this was added.
+                "fields_required": [
+                    "subject",
+                    "status",
+                    "priority",
+                    "category",
+                    "subcategory",
+                    "technician",
+                    "created_time",
+                    "due_by_time",
+                    "completed_time",
+                    "resolved_time",
+                ],
             }
             response = requests.get(
                 f"{self.api_domain}/api/v3/requests",
