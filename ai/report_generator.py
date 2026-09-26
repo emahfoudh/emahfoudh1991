@@ -65,16 +65,26 @@ def generate_report(period_label: str, ticket_kpis: dict, network_kpis: dict, re
         client = anthropic.Anthropic(api_key=api_key)
         message = client.messages.create(
             model="claude-sonnet-5",
-            max_tokens=1500,
+            max_tokens=4096,
             system=SYSTEM_PROMPT,
             messages=[{"role": "user", "content": build_user_prompt(period_label, ticket_kpis, network_kpis, recurring)}],
         )
         # Claude's response can include a thinking block before the text
         # block, so find the first text block rather than assuming index 0.
-        text_blocks = [block.text for block in message.content if block.type == "text"]
+        text_blocks = [block.text for block in message.content if block.type == "text" and block.text.strip()]
         if not text_blocks:
-            raise RuntimeError("No text block in Claude's response")
-        report = json.loads(text_blocks[0])
+            raise RuntimeError(
+                f"No non-empty text block in Claude's response (stop_reason={message.stop_reason})"
+            )
+        raw_text = text_blocks[0].strip()
+        # Models sometimes wrap JSON in markdown code fences even when told
+        # not to; strip them defensively before parsing.
+        if raw_text.startswith("```"):
+            raw_text = raw_text.split("```")[1]
+            if raw_text.startswith("json"):
+                raw_text = raw_text[4:]
+            raw_text = raw_text.strip()
+        report = json.loads(raw_text)
         if not _validate_shape(report):
             raise ValueError("AI response missing required keys; falling back to template.")
         report["generated_by"] = "claude"

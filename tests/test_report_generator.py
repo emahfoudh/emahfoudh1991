@@ -54,6 +54,24 @@ def test_generate_report_finds_text_block_after_thinking_block(mock_anthropic_cl
     # Reproduces the real bug: content[0] is a thinking block, not text.
     mock_message = MagicMock()
     mock_message.content = [_thinking_block(), _text_block(VALID_REPORT_JSON)]
+    mock_message.stop_reason = "end_turn"
+    mock_client = MagicMock()
+    mock_client.messages.create.return_value = mock_message
+    mock_anthropic_cls.return_value = mock_client
+
+    result = generate_report("Test Period", {"insufficient_data": False, "total_tickets": 5}, {}, [])
+
+    assert result["generated_by"] == "claude"
+    assert result["executive_summary"] == "Test summary"
+
+
+@patch("anthropic.Anthropic")
+def test_generate_report_strips_markdown_code_fences(mock_anthropic_cls):
+    # Models sometimes wrap JSON in ```json ... ``` even when told not to.
+    fenced = f"```json\n{VALID_REPORT_JSON}\n```"
+    mock_message = MagicMock()
+    mock_message.content = [_text_block(fenced)]
+    mock_message.stop_reason = "end_turn"
     mock_client = MagicMock()
     mock_client.messages.create.return_value = mock_message
     mock_anthropic_cls.return_value = mock_client
@@ -68,6 +86,7 @@ def test_generate_report_finds_text_block_after_thinking_block(mock_anthropic_cl
 def test_generate_report_falls_back_when_no_text_block_present(mock_anthropic_cls):
     mock_message = MagicMock()
     mock_message.content = [_thinking_block()]  # no text block at all
+    mock_message.stop_reason = "end_turn"
     mock_client = MagicMock()
     mock_client.messages.create.return_value = mock_message
     mock_anthropic_cls.return_value = mock_client
@@ -79,9 +98,28 @@ def test_generate_report_falls_back_when_no_text_block_present(mock_anthropic_cl
 
 
 @patch("anthropic.Anthropic")
+def test_generate_report_falls_back_when_text_block_is_empty(mock_anthropic_cls):
+    # Reproduces the real bug: max_tokens exhausted by thinking, text block
+    # exists but is an empty string.
+    mock_message = MagicMock()
+    mock_message.content = [_thinking_block(), _text_block("")]
+    mock_message.stop_reason = "max_tokens"
+    mock_client = MagicMock()
+    mock_client.messages.create.return_value = mock_message
+    mock_anthropic_cls.return_value = mock_client
+
+    result = generate_report("Test Period", {"insufficient_data": True}, {}, [])
+
+    assert result["generated_by"] == "template_fallback"
+    assert "ai_error" in result
+    assert "max_tokens" in result["ai_error"]
+
+
+@patch("anthropic.Anthropic")
 def test_generate_report_falls_back_on_malformed_json(mock_anthropic_cls):
     mock_message = MagicMock()
     mock_message.content = [_text_block("not valid json")]
+    mock_message.stop_reason = "end_turn"
     mock_client = MagicMock()
     mock_client.messages.create.return_value = mock_message
     mock_anthropic_cls.return_value = mock_client
