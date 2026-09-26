@@ -21,7 +21,7 @@ from datetime import datetime
 from connectors.synthetic_tickets import SyntheticTicketConnector
 from connectors.synthetic_network import SyntheticNetworkConnector
 from connectors.synthetic_contracts import SyntheticContractConnector
-from engines.kpi_engine import calculate_ticket_kpis, detect_recurring_categories
+from engines.kpi_engine import calculate_technician_performance, calculate_ticket_kpis, detect_recurring_categories
 from engines.network_engine import calculate_network_kpis
 from engines.cost_engine import calculate_cost_kpis
 from ai.report_generator import generate_report
@@ -64,17 +64,19 @@ def run_pipeline(tickets_csv: str, network_csv: str, contracts_csv: str, outdir:
     recurring = detect_recurring_categories(tickets)
     network_kpis = calculate_network_kpis(network_samples)
     cost_kpis = calculate_cost_kpis(contracts, now)
+    technician_performance = calculate_technician_performance(tickets, now)
     print(f"[engines] ticket KPIs computed, {len(recurring)} recurring categories flagged")
     print(f"[engines] network KPIs computed, {len(network_kpis.get('flagged_sites', []))} sites flagged")
     print(f"[engines] cost KPIs computed, {len(cost_kpis.get('contracts_renewing_soon', []))} contracts renewing soon")
+    print(f"[engines] technician ranking: {technician_performance.get('ranking_best_to_worst', [])}")
 
     ai_report = generate_report(period_label, ticket_kpis, network_kpis, recurring, cost_kpis)
     print(f"[ai] report generated via: {ai_report.get('generated_by', 'unknown')}")
 
     pdf_path = os.path.join(outdir, "executive_report.pdf")
     excel_path = os.path.join(outdir, "executive_report.xlsx")
-    export_pdf(pdf_path, period_label, ticket_kpis, network_kpis, ai_report)
-    export_excel(excel_path, period_label, ticket_kpis, network_kpis, ai_report)
+    export_pdf(pdf_path, period_label, ticket_kpis, network_kpis, ai_report, technician_performance)
+    export_excel(excel_path, period_label, ticket_kpis, network_kpis, ai_report, technician_performance)
     print(f"[reporting] wrote {pdf_path}")
     print(f"[reporting] wrote {excel_path}")
 
@@ -84,7 +86,9 @@ def run_pipeline(tickets_csv: str, network_csv: str, contracts_csv: str, outdir:
     persist_tickets(engine, customer_id, tickets)
     persist_network_samples(engine, customer_id, network_samples)
     persist_contracts(engine, customer_id, contracts)
-    snapshot_id = persist_kpi_snapshot(engine, customer_id, period_label, ticket_kpis, network_kpis, recurring, cost_kpis)
+    snapshot_id = persist_kpi_snapshot(
+        engine, customer_id, period_label, ticket_kpis, network_kpis, recurring, cost_kpis, technician_performance
+    )
     report_id = persist_report(engine, customer_id, period_label, ai_report, pdf_path, excel_path, snapshot_id)
     print(f"[persistence] wrote kpi_snapshot #{snapshot_id} and report #{report_id} to ai_it_operations.db")
 

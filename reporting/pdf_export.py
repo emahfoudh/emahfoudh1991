@@ -18,6 +18,9 @@ _STYLE = """
   table.kpi-row td { border: 1px solid #ddd; border-radius: 4px; padding: 10px 16px; width: 25%; }
   .kpi-value { font-size: 20px; font-weight: bold; display: block; }
   .kpi-label { font-size: 11px; color: #666; }
+  table.tech-table { width: 100%; border-collapse: collapse; margin: 8px 0 16px 0; font-size: 11px; }
+  table.tech-table th, table.tech-table td { border: 1px solid #ddd; padding: 6px 8px; text-align: left; }
+  table.tech-table th { background: #f0f0f0; }
   ul { margin: 4px 0 12px 20px; padding: 0; font-size: 12px; }
   li { margin-bottom: 4px; }
   p { font-size: 12px; }
@@ -31,7 +34,58 @@ def _list_html(items: list[str]) -> str:
     return "<ul>" + "".join(f"<li>{i}</li>" for i in items) + "</ul>"
 
 
-def export_pdf(path: str, period_label: str, ticket_kpis: dict, network_kpis: dict, ai_report: dict) -> None:
+def _technician_table_html(technician_performance: dict) -> str:
+    if not technician_performance or technician_performance.get("insufficient_data"):
+        return "<p>Insufficient data</p>"
+
+    by_technician = technician_performance.get("by_technician", {})
+    ranking = technician_performance.get("ranking_best_to_worst", [])
+    excluded = set(technician_performance.get("excluded_from_ranking", []))
+
+    # Ranked technicians first (best to worst), then excluded ones
+    # (unassigned, low-volume) shown separately for transparency rather
+    # than silently dropped from the report.
+    ordered = ranking + [t for t in by_technician if t in excluded]
+
+    rows = ""
+    for rank, tech in enumerate(ordered, start=1):
+        perf = by_technician[tech]
+        rank_label = str(rank) if tech not in excluded else "—"
+        rows += f"""
+        <tr>
+          <td>{rank_label}</td>
+          <td>{tech}</td>
+          <td>{perf['total_tickets']}</td>
+          <td>{perf['closed_tickets']}</td>
+          <td>{perf.get('sla_compliance_pct', '-')}</td>
+          <td>{perf.get('mttr_hours', '-')}</td>
+        </tr>
+        """
+
+    excluded_note = (
+        f"<p style='font-size:11px;color:#666;'>Technicians marked \"—\" are excluded from ranking "
+        f"(unassigned bucket, or fewer than the minimum closed tickets for a fair comparison).</p>"
+        if excluded
+        else ""
+    )
+
+    return f"""
+    <table class="tech-table">
+      <tr><th>Rank</th><th>Technician</th><th>Total</th><th>Closed</th><th>SLA %</th><th>MTTR (hrs)</th></tr>
+      {rows}
+    </table>
+    {excluded_note}
+    """
+
+
+def export_pdf(
+    path: str,
+    period_label: str,
+    ticket_kpis: dict,
+    network_kpis: dict,
+    ai_report: dict,
+    technician_performance: dict | None = None,
+) -> None:
     kpi_html = ""
     if not ticket_kpis.get("insufficient_data"):
         kpi_html = f"""
@@ -64,6 +118,8 @@ def export_pdf(path: str, period_label: str, ticket_kpis: dict, network_kpis: di
       {kpi_html}
       <h2>Network / Infrastructure</h2>
       {network_html}
+      <h2>Technician Performance</h2>
+      {_technician_table_html(technician_performance)}
       <h2>Recurring Problems</h2>
       {_list_html(ai_report.get('recurring_problems', []))}
       <h2>Risk Observations</h2>

@@ -73,6 +73,31 @@ def test_render_dashboard_shows_time_windowed_tiles():
     assert "Unassigned Today" in html
 
 
+def test_render_dashboard_shows_technician_performance_table():
+    snapshot = SimpleNamespace(
+        period_label="Test Period",
+        computed_at=datetime(2026, 1, 1),
+        ticket_kpis={"insufficient_data": True},
+        network_kpis={},
+        technician_performance={
+            "insufficient_data": False,
+            "by_technician": {
+                "engineer_a": {"total_tickets": 10, "closed_tickets": 9, "open_tickets": 1, "sla_compliance_pct": 90.0, "mttr_hours": 5.0},
+                "unassigned": {"total_tickets": 3, "closed_tickets": 0, "open_tickets": 3, "sla_compliance_pct": None, "mttr_hours": None},
+            },
+            "ranking_best_to_worst": ["engineer_a"],
+            "excluded_from_ranking": ["unassigned"],
+        },
+    )
+
+    html = render_dashboard(snapshot, None)
+
+    assert "engineer_a" in html
+    assert "90.0" in html
+    assert "unassigned" in html
+    assert "—" in html  # excluded rank marker
+
+
 def test_render_dashboard_shows_cost_tiles_when_present():
     snapshot = SimpleNamespace(
         period_label="Test Period",

@@ -81,6 +81,7 @@ class KPISnapshot(Base):
     ticket_kpis = Column(JSON)
     network_kpis = Column(JSON)
     cost_kpis = Column(JSON)
+    technician_performance = Column(JSON)
     recurring_categories = Column(JSON)
     computed_at = Column(DateTime, default=datetime.utcnow)
 

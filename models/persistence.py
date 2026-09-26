@@ -88,6 +88,7 @@ def persist_kpi_snapshot(
     network_kpis: dict,
     recurring: list[dict],
     cost_kpis: dict | None = None,
+    technician_performance: dict | None = None,
 ) -> int:
     with get_session(engine) as session:
         snapshot = KPISnapshot(
@@ -96,6 +97,7 @@ def persist_kpi_snapshot(
             ticket_kpis=ticket_kpis,
             network_kpis=network_kpis,
             cost_kpis=cost_kpis,
+            technician_performance=technician_performance,
             recurring_categories=recurring,
         )
         session.add(snapshot)

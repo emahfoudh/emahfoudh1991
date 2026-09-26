@@ -4,7 +4,14 @@ from openpyxl import Workbook
 from openpyxl.styles import Font
 
 
-def export_excel(path: str, period_label: str, ticket_kpis: dict, network_kpis: dict, ai_report: dict) -> None:
+def export_excel(
+    path: str,
+    period_label: str,
+    ticket_kpis: dict,
+    network_kpis: dict,
+    ai_report: dict,
+    technician_performance: dict | None = None,
+) -> None:
     wb = Workbook()
 
     summary_ws = wb.active
@@ -46,6 +53,21 @@ def export_excel(path: str, period_label: str, ticket_kpis: dict, network_kpis: 
                 site, s["avg_bandwidth_committed_mbps"], s["avg_bandwidth_measured_mbps"],
                 s["bandwidth_underdelivery_pct"], s["avg_latency_ms"], s["avg_packet_loss_pct"],
                 s["avg_uptime_pct"], s["circuit_provider"],
+            ])
+
+    tech_ws = wb.create_sheet("Technician Performance")
+    tech_ws.append(["Rank", "Technician", "Total Tickets", "Closed", "SLA %", "MTTR (hrs)"])
+    if technician_performance and not technician_performance.get("insufficient_data"):
+        by_technician = technician_performance.get("by_technician", {})
+        ranking = technician_performance.get("ranking_best_to_worst", [])
+        excluded = set(technician_performance.get("excluded_from_ranking", []))
+        ordered = ranking + [t for t in by_technician if t in excluded]
+        for rank, tech in enumerate(ordered, start=1):
+            perf = by_technician[tech]
+            rank_label = rank if tech not in excluded else "excluded"
+            tech_ws.append([
+                rank_label, tech, perf["total_tickets"], perf["closed_tickets"],
+                perf.get("sla_compliance_pct"), perf.get("mttr_hours"),
             ])
 
     wb.save(path)

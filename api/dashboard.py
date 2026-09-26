@@ -47,8 +47,51 @@ _STYLE = """
   a.button { display: inline-block; margin-top: 24px; padding: 8px 16px;
              border: 1px solid #0f5c5c; border-radius: 6px; color: #0f5c5c;
              text-decoration: none; }
+  table.tech-table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 0.85em; }
+  table.tech-table th, table.tech-table td { border: 1px solid #ccc; padding: 6px 10px; text-align: left; }
+  table.tech-table th { background: rgba(15,92,92,0.1); }
 </style>
 """
+
+
+def _technician_table_html(technician_performance: dict) -> str:
+    if not technician_performance or technician_performance.get("insufficient_data"):
+        return "<p class='muted'>Insufficient data</p>"
+
+    by_technician = technician_performance.get("by_technician", {})
+    ranking = technician_performance.get("ranking_best_to_worst", [])
+    excluded = set(technician_performance.get("excluded_from_ranking", []))
+    ordered = ranking + [t for t in by_technician if t in excluded]
+
+    rows = ""
+    for rank, tech in enumerate(ordered, start=1):
+        perf = by_technician[tech]
+        rank_label = str(rank) if tech not in excluded else "—"
+        rows += f"""
+        <tr>
+          <td>{escape(rank_label)}</td>
+          <td>{escape(tech)}</td>
+          <td>{perf['total_tickets']}</td>
+          <td>{perf['closed_tickets']}</td>
+          <td>{escape(str(perf.get('sla_compliance_pct', '-')))}</td>
+          <td>{escape(str(perf.get('mttr_hours', '-')))}</td>
+        </tr>
+        """
+
+    excluded_note = (
+        "<p class='muted' style='font-size:0.8em;'>Rows marked \"—\" are excluded from ranking "
+        "(unassigned, or too few closed tickets for a fair comparison).</p>"
+        if excluded
+        else ""
+    )
+
+    return f"""
+    <table class="tech-table">
+      <tr><th>Rank</th><th>Technician</th><th>Total</th><th>Closed</th><th>SLA %</th><th>MTTR (hrs)</th></tr>
+      {rows}
+    </table>
+    {excluded_note}
+    """
 
 
 def render_empty_state() -> str:
@@ -68,6 +111,7 @@ def render_dashboard(snapshot, report) -> str:
     ticket_kpis = snapshot.ticket_kpis or {}
     network_kpis = snapshot.network_kpis or {}
     cost_kpis = getattr(snapshot, "cost_kpis", None) or {}
+    technician_performance = getattr(snapshot, "technician_performance", None) or {}
     ai_report = report.ai_report_json or {} if report else {}
 
     tiles = []
@@ -96,6 +140,9 @@ def render_dashboard(snapshot, report) -> str:
       <div class="meta">Computed {snapshot.computed_at} · Report generated via {escape(ai_report.get('generated_by', 'unknown'))}</div>
 
       {tiles_html}
+
+      <h2>Technician Performance</h2>
+      {_technician_table_html(technician_performance)}
 
       <h2>Executive Summary</h2>
       <p>{escape(ai_report.get('executive_summary', 'Insufficient data'))}</p>

@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 
-from engines.kpi_engine import calculate_ticket_kpis, detect_recurring_categories
+from engines.kpi_engine import calculate_technician_performance, calculate_ticket_kpis, detect_recurring_categories
 from engines.network_engine import calculate_network_kpis
 
 
@@ -72,6 +72,48 @@ def test_opened_today_assigned_vs_unassigned():
     assert result["opened_today_total"] == 2
     assert result["opened_today_assigned"] == 1
     assert result["opened_today_unassigned"] == 1
+
+
+def test_technician_performance_ranks_by_sla_then_volume():
+    now = datetime(2026, 1, 10)
+    opened = datetime(2026, 1, 1)
+
+    # engineer_a: 5 closed, 100% SLA
+    a_tickets = [_ticket(opened, opened + timedelta(hours=1), assigned_to="engineer_a") for _ in range(5)]
+    # engineer_b: 5 closed, 100% SLA too, but fewer would still tie on SLA -> volume tiebreak
+    b_tickets = [_ticket(opened, opened + timedelta(hours=1), assigned_to="engineer_b") for _ in range(3)]
+    # engineer_c: 4 closed, 50% SLA (2 breach)
+    c_tickets = [_ticket(opened, opened + timedelta(hours=1), assigned_to="engineer_c") for _ in range(2)]
+    c_tickets += [_ticket(opened, opened + timedelta(hours=48), sla_target_hours=24, assigned_to="engineer_c") for _ in range(2)]
+
+    result = calculate_technician_performance(a_tickets + b_tickets + c_tickets, now)
+
+    assert result["ranking_best_to_worst"][0] == "engineer_a"  # same SLA as b, more volume
+    assert result["ranking_best_to_worst"][-1] == "engineer_c"  # worst SLA
+    assert result["by_technician"]["engineer_a"]["sla_compliance_pct"] == 100.0
+    assert result["by_technician"]["engineer_c"]["sla_compliance_pct"] == 50.0
+
+
+def test_technician_performance_excludes_unassigned_and_low_volume():
+    now = datetime(2026, 1, 10)
+    opened = datetime(2026, 1, 1)
+
+    tickets = [_ticket(opened, opened + timedelta(hours=1), assigned_to="unassigned") for _ in range(5)]
+    tickets += [_ticket(opened, opened + timedelta(hours=1), assigned_to="engineer_low_volume") for _ in range(2)]  # below min_tickets=3
+
+    result = calculate_technician_performance(tickets, now, min_tickets=3)
+
+    assert "unassigned" not in result["ranking_best_to_worst"]
+    assert "engineer_low_volume" not in result["ranking_best_to_worst"]
+    assert "unassigned" in result["excluded_from_ranking"]
+    assert "engineer_low_volume" in result["excluded_from_ranking"]
+    # but still visible in the raw per-technician breakdown
+    assert result["by_technician"]["unassigned"]["total_tickets"] == 5
+
+
+def test_technician_performance_empty_tickets_returns_insufficient_data():
+    result = calculate_technician_performance([], now=datetime(2026, 1, 1))
+    assert result["insufficient_data"] is True
 
 
 def test_recurring_category_detection_respects_threshold():

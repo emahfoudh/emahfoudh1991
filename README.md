@@ -197,6 +197,35 @@ the PDF/Excel exports. Same discipline as everything else here: pure
 function, tested (`tests/test_kpi_engine.py`), verified against both
 synthetic data and a live report/dashboard render before committing.
 
+## Phase 9: technician performance ranking
+
+`engines/kpi_engine.py`'s `calculate_technician_performance` breaks
+down SLA compliance, MTTR, and ticket volume per technician, and
+produces a best-to-worst ranking. Design choices worth knowing:
+
+- **Ranked by SLA compliance first, ticket volume as tie-break** —
+  the metric that actually reflects service quality, not just who
+  processes the most tickets.
+- **The "unassigned" bucket is excluded from ranking** — it isn't a
+  technician, it's a backlog signal.
+- **A minimum closed-ticket threshold (default 3) excludes low-volume
+  technicians from ranking** — a 100% SLA rate on 2 tickets isn't a
+  meaningful comparison against someone who closed 800. Excluded
+  technicians still appear in the raw per-technician breakdown and in
+  the report tables, marked "—" instead of a rank, rather than being
+  silently dropped.
+
+Appears as a full table in the PDF, its own Excel sheet, and a
+dashboard section — verified against a live render of all three
+before committing, not just unit tests.
+
+**Worth knowing before treating this as a performance review tool:**
+this ranks strictly on SLA%/volume/MTTR from ticket timestamps alone.
+It says nothing about ticket difficulty, whether SLA targets were
+set realistically per category, or context a manager would know and
+a KPI number wouldn't. Useful as a starting signal, not a substitute
+for judgment about an individual's actual performance.
+
 ## Phase 5: cost/contract module
 
 `connectors/synthetic_contracts.py` reads vendor/service/cost/renewal

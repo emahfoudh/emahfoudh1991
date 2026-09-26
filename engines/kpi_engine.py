@@ -84,6 +84,67 @@ def calculate_ticket_kpis(tickets: list[dict], now: datetime) -> dict:
     }
 
 
+def calculate_technician_performance(tickets: list[dict], now: datetime, min_tickets: int = 3) -> dict:
+    """
+    Per-technician SLA compliance, MTTR, and volume, plus a best-to-
+    worst ranking. The "unassigned" bucket is excluded from ranking —
+    it isn't a technician, it's a backlog signal already covered by
+    opened_today_unassigned.
+
+    Ranking is by SLA compliance first (the metric that actually
+    reflects service quality), then by closed-ticket volume as a
+    tie-break. Technicians below min_tickets closed tickets are
+    excluded from the ranking entirely — a 100% SLA rate on 2 tickets
+    isn't a meaningful comparison against someone who closed 800,
+    and including it would be a misleading ranking, not a discreet one.
+    """
+    if not tickets:
+        return {"insufficient_data": True}
+
+    by_technician: dict[str, list[dict]] = {}
+    for t in tickets:
+        by_technician.setdefault(t["assigned_to"], []).append(t)
+
+    performance = {}
+    for tech, tix in by_technician.items():
+        closed = [t for t in tix if t["closed_at"] is not None]
+        sla_met = sum(
+            1 for t in closed if _duration_hours(t["opened_at"], t["closed_at"], now) <= t["sla_target_hours"]
+        )
+        sla_pct = round(100 * sla_met / len(closed), 1) if closed else None
+        mttr_hours = (
+            round(sum(_duration_hours(t["opened_at"], t["closed_at"], now) for t in closed) / len(closed), 1)
+            if closed
+            else None
+        )
+        performance[tech] = {
+            "total_tickets": len(tix),
+            "closed_tickets": len(closed),
+            "open_tickets": len(tix) - len(closed),
+            "sla_compliance_pct": sla_pct,
+            "mttr_hours": mttr_hours,
+        }
+
+    eligible = {
+        tech: perf
+        for tech, perf in performance.items()
+        if tech != UNASSIGNED_MARKER and perf["closed_tickets"] >= min_tickets
+    }
+    ranking = sorted(
+        eligible.items(),
+        key=lambda item: (-(item[1]["sla_compliance_pct"] or -1), -item[1]["closed_tickets"]),
+    )
+
+    return {
+        "insufficient_data": False,
+        "by_technician": performance,
+        "ranking_best_to_worst": [tech for tech, _ in ranking],
+        "excluded_from_ranking": sorted(
+            tech for tech in performance if tech not in eligible
+        ),
+    }
+
+
 def detect_recurring_categories(tickets: list[dict], min_occurrences: int = 3) -> list[dict]:
     """
     Flags categories with repeated tickets in the period — the
