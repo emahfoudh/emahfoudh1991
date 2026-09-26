@@ -70,7 +70,7 @@ API serves the latest snapshot/report from that database:
 
 ```bash
 .venv/bin/uvicorn api.app:app --reload
-# then in another terminal:
+# then in another terminal, or open the dashboard URL in a browser:
 curl http://127.0.0.1:8000/kpi-snapshot/latest
 curl http://127.0.0.1:8000/report/latest
 ```
@@ -78,7 +78,22 @@ curl http://127.0.0.1:8000/report/latest
 This has no auth and no write endpoints — there's no real customer
 or role system to protect yet, and it's not meant to be exposed
 beyond your own machine. It exists to prove the pipeline's output can
-be served over HTTP, which is what a future dashboard will build on.
+be served over HTTP.
+
+## Phase 4: minimal dashboard
+
+Open `http://127.0.0.1:8000/dashboard` in a browser (with the API
+server above running) to see the latest report as a readable page —
+KPI tiles, executive summary, and every report section — instead of
+raw JSON. `api/dashboard.py` holds the plain HTML rendering logic,
+covered directly by `tests/test_dashboard.py` (including an
+HTML-escaping check, since a period label or ticket title will
+eventually come from real, untrusted vendor data).
+
+No JavaScript, no client-side framework, no auto-refresh — this is
+the smallest page that proves persisted pipeline output is viewable,
+not a production dashboard. Drill-down, history, and live updates are
+designed for later.
 
 ## Project structure
 

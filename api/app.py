@@ -10,18 +10,31 @@ not itself a dashboard or a production API.
 """
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import HTMLResponse
 
+from api.dashboard import render_dashboard, render_empty_state
 from models.persistence import get_latest_kpi_snapshot, get_latest_report, get_or_create_synthetic_customer
-from models.schema import get_engine
+from models.schema import get_engine, init_db
 
 app = FastAPI(title="AI IT Operations API (MVP, read-only, synthetic data)")
 
 engine = get_engine()
+init_db(engine)
 
 
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+@app.get("/dashboard", response_class=HTMLResponse)
+def dashboard():
+    customer_id = get_or_create_synthetic_customer(engine)
+    snapshot = get_latest_kpi_snapshot(engine, customer_id)
+    if snapshot is None:
+        return render_empty_state()
+    report = get_latest_report(engine, customer_id)
+    return render_dashboard(snapshot, report)
 
 
 @app.get("/kpi-snapshot/latest")
