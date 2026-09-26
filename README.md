@@ -147,6 +147,43 @@ used by the synthetic pipeline.
 and pagination logic entirely with mocked HTTP responses — it never
 makes a real network call, so it runs the same in CI as anywhere else.
 
+## Phase 6: ManageEngine ServiceDesk Plus connector (read-only)
+
+`connectors/manageengine_sdp.py` is a second real connector, following
+the same interface and safety pattern as Zoho Desk — but this one is
+built to be pointed at a real, authorized company instance rather
+than a personal sandbox, since that's the actual ticketing tool in
+use at the intended pilot organization.
+
+**Safety properties, structurally enforced and tested**
+(`tests/test_manageengine_sdp_connector.py` includes a source-code
+check for this, not just a behavioral one):
+- Only ever issues `GET` requests against the SDP API. There is
+  exactly one `requests.post` call in the file, and it's the OAuth
+  token refresh — never a create/update/delete against ticket data.
+- Reads credentials from environment variables only; nothing
+  hardcoded, nothing committed.
+- Must only be used with a least-privilege, read-only API credential,
+  and only against an instance the operator is explicitly authorized
+  to read from.
+
+**Two things are unverified until tested live**, same situation the
+Zoho Desk connector was in before it needed two live-testing fixes:
+the exact API path (`/app/{portal}/api/v3/requests` is SDP's
+documented pattern but untested against a real portal) and the exact
+datetime format SDP returns (its API often uses `{"value": "<epoch
+ms>"}` objects rather than ISO strings — `_parse_sdp_datetime`
+handles both shapes, but only one has been confirmed against a real
+response). Expect to read the first live traceback and adjust, the
+same way `zoho_desk.py`'s endpoint and `report_generator.py`'s
+max_tokens issue were both found and fixed through actual testing
+rather than guessing.
+
+Run it with `python run_sdp_pipeline.py` once `.env` has the
+`SDP_*` variables set — leave `ANTHROPIC_API_KEY` unset for the first
+real run so no real ticket data is sent to any third-party API until
+that's a deliberate decision, not a default.
+
 ## Phase 5: cost/contract module
 
 `connectors/synthetic_contracts.py` reads vendor/service/cost/renewal
