@@ -25,6 +25,14 @@ from engines.network_engine import calculate_network_kpis
 from ai.report_generator import generate_report
 from reporting.pdf_export import export_pdf
 from reporting.excel_export import export_excel
+from models.schema import get_engine, init_db
+from models.persistence import (
+    get_or_create_synthetic_customer,
+    persist_tickets,
+    persist_network_samples,
+    persist_kpi_snapshot,
+    persist_report,
+)
 
 
 def run_pipeline(tickets_csv: str, network_csv: str, outdir: str, period_label: str) -> None:
@@ -58,6 +66,15 @@ def run_pipeline(tickets_csv: str, network_csv: str, outdir: str, period_label: 
     export_excel(excel_path, period_label, ticket_kpis, network_kpis, ai_report)
     print(f"[reporting] wrote {pdf_path}")
     print(f"[reporting] wrote {excel_path}")
+
+    engine = get_engine()
+    init_db(engine)
+    customer_id = get_or_create_synthetic_customer(engine)
+    persist_tickets(engine, customer_id, tickets)
+    persist_network_samples(engine, customer_id, network_samples)
+    snapshot_id = persist_kpi_snapshot(engine, customer_id, period_label, ticket_kpis, network_kpis, recurring)
+    report_id = persist_report(engine, customer_id, period_label, ai_report, pdf_path, excel_path, snapshot_id)
+    print(f"[persistence] wrote kpi_snapshot #{snapshot_id} and report #{report_id} to ai_it_operations.db")
 
 
 if __name__ == "__main__":

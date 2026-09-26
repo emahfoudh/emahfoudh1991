@@ -1,4 +1,4 @@
-# AI IT Operations — MVP (Phase 1)
+# AI IT Operations — MVP (Phase 1 + Phase 2)
 
 Turns fragmented IT operational data into an executive report. This
 is the MVP: synthetic data only, no live connection to any real
@@ -60,6 +60,25 @@ docker compose up --build
 .venv/bin/python -m pytest tests/ -v
 ```
 
+## Phase 2: persistence + read-only API
+
+`main.py` now also writes every run's tickets, network samples, KPI
+snapshot, and report into a local SQLite file (`ai_it_operations.db`,
+gitignored — it's generated data, not source). A minimal read-only
+API serves the latest snapshot/report from that database:
+
+```bash
+.venv/bin/uvicorn api.app:app --reload
+# then in another terminal:
+curl http://127.0.0.1:8000/kpi-snapshot/latest
+curl http://127.0.0.1:8000/report/latest
+```
+
+This has no auth and no write endpoints — there's no real customer
+or role system to protect yet, and it's not meant to be exposed
+beyond your own machine. It exists to prove the pipeline's output can
+be served over HTTP, which is what a future dashboard will build on.
+
 ## Project structure
 
 - `connectors/` — one file per data source. `base.py` defines the interface every connector (synthetic or real) must implement: `authenticate()`, `fetch()`, `normalize()`. This is what lets a real Zoho/Sophos/FortiGate connector slot in later without touching anything downstream.
@@ -78,4 +97,4 @@ docker compose up --build
 
 ## What's deliberately NOT built yet
 
-Real vendor connectors (Zoho/Sophos/FortiGate/M365), persistent database, live dashboard, multi-tenancy, auth, cost/contract module, scheduling. See the architecture roadmap discussed with the project owner for phased build-out — each of those is designed for, not built, until this MVP loop is proven.
+Real vendor connectors (Zoho/Sophos/FortiGate/M365), live dashboard, multi-tenancy, auth, cost/contract module, scheduling. See the architecture roadmap discussed with the project owner for phased build-out — each of those is designed for, not built, until this MVP loop is proven.
