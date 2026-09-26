@@ -1,10 +1,8 @@
 """
-One-off debug script: fetches a handful of REAL, RECENT tickets and
-prints ONLY field names/structure for status/category/priority/time
-fields, plus the ticket id. Deliberately does NOT print subject,
-description, or requester fields, since those contain real ticket
-content and personal details that aren't needed to fix a field-name
-mapping bug.
+One-off debug script: checks the API response's metadata (list_info,
+response_status envelope) to see if a default filter/view is limiting
+results to open tickets only. Prints NO ticket content - only counts
+and metadata about the request/response itself.
 
 Delete this file once the mapping is fixed - it's a diagnostic tool,
 not part of the pipeline.
@@ -32,18 +30,7 @@ response = requests.get(
                 "list_info": {
                     "row_count": 5,
                     "start_index": 1,
-                    "sort_field": "created_time",
-                    "sort_order": "desc",  # most recent tickets, more likely fully triaged
-                    "fields_required": [
-                        "priority",
-                        "category",
-                        "subcategory",
-                        "status",
-                        "created_time",
-                        "due_by_time",
-                        "resolved_time",
-                        "completed_time",
-                    ],
+                    "get_total_count": True,
                 }
             }
         )
@@ -51,16 +38,21 @@ response = requests.get(
     timeout=30,
 )
 response.raise_for_status()
-tickets = response.json().get("requests", [])
+body = response.json()
 
-print(f"Fetched {len(tickets)} recent tickets.\n")
+print("Top-level response keys:", sorted(body.keys()))
+print()
+if "list_info" in body:
+    print("list_info (echoed back by the API):")
+    print(json.dumps(body["list_info"], indent=2))
+print()
+if "response_status" in body:
+    print("response_status:", json.dumps(body["response_status"], indent=2))
 
-for t in tickets:
-    print(f"--- ticket id: {t.get('id')} ---")
-    print("Top-level field names present:", sorted(t.keys()))
-    for field in ["status", "category", "subcategory", "priority", "created_time", "due_by_time", "completed_time", "resolved_time"]:
-        if field in t:
-            print(f"  {field}: {json.dumps(t[field])}")
-        else:
-            print(f"  {field}: <not present>")
-    print()
+print()
+print(f"Number of tickets in this page: {len(body.get('requests', []))}")
+
+# Print just the status of each ticket in this small page, to see the
+# actual variety of status values without any other ticket content.
+statuses_seen = [t.get("status", {}).get("name") for t in body.get("requests", [])]
+print("Status names in this page:", statuses_seen)
