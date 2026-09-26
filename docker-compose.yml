@@ -1,0 +1,9 @@
+services:
+  ai-it-operations:
+    build: .
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+      - ./output:/app/output
+    command: python main.py
