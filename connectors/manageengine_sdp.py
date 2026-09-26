@@ -67,7 +67,12 @@ class ManageEngineSDPConnector(Connector):
     def _headers(self) -> dict:
         if not self._access_token:
             raise RuntimeError("authenticate() must be called before fetch()")
-        return {"Authorization": f"Zoho-oauthtoken {self._access_token}"}
+        return {
+            "Authorization": f"Zoho-oauthtoken {self._access_token}",
+            # SDP's v3 API requires this versioned media type on Accept;
+            # a live 415 Unsupported Media Type confirmed it's required.
+            "Accept": "application/vnd.manageengine.sdp.v3+json",
+        }
 
     def fetch(self, since: datetime | None = None) -> list[dict]:
         """
