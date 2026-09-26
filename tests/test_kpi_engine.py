@@ -45,6 +45,35 @@ def test_open_ticket_counted_but_excluded_from_sla():
     assert result["sla_compliance_pct"] == 100.0  # only closed tickets count toward SLA%
 
 
+def test_closed_last_7_and_30_days_counts():
+    now = datetime(2026, 1, 31)
+    opened = datetime(2026, 1, 1)
+    closed_3_days_ago = _ticket(opened, now - timedelta(days=3))
+    closed_20_days_ago = _ticket(opened, now - timedelta(days=20))
+    closed_60_days_ago = _ticket(opened, now - timedelta(days=60))
+
+    result = calculate_ticket_kpis([closed_3_days_ago, closed_20_days_ago, closed_60_days_ago], now)
+
+    assert result["closed_last_7_days"] == 1
+    assert result["closed_last_30_days"] == 2  # includes the 3-day and 20-day ones
+
+
+def test_opened_today_assigned_vs_unassigned():
+    now = datetime(2026, 1, 15, 14, 0)
+    today_morning = datetime(2026, 1, 15, 8, 0)
+    yesterday = datetime(2026, 1, 14, 8, 0)
+
+    assigned_today = _ticket(today_morning, assigned_to="engineer_a")
+    unassigned_today = _ticket(today_morning, assigned_to="unassigned")
+    assigned_yesterday = _ticket(yesterday, assigned_to="engineer_b")
+
+    result = calculate_ticket_kpis([assigned_today, unassigned_today, assigned_yesterday], now)
+
+    assert result["opened_today_total"] == 2
+    assert result["opened_today_assigned"] == 1
+    assert result["opened_today_unassigned"] == 1
+
+
 def test_recurring_category_detection_respects_threshold():
     now = datetime(2026, 1, 1)
     tickets = [_ticket(now, category="network") for _ in range(3)] + [_ticket(now, category="access")]

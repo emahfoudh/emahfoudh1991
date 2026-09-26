@@ -47,6 +47,32 @@ def test_render_dashboard_shows_kpi_tiles():
     assert "Insufficient data" in html  # empty sections still render the fallback
 
 
+def test_render_dashboard_shows_time_windowed_tiles():
+    snapshot = SimpleNamespace(
+        period_label="Test Period",
+        computed_at=datetime(2026, 1, 1),
+        ticket_kpis={
+            "insufficient_data": False,
+            "total_tickets": 10,
+            "open_tickets": 2,
+            "sla_compliance_pct": 90.0,
+            "mttr_hours": 5.0,
+            "closed_last_7_days": 4,
+            "closed_last_30_days": 9,
+            "opened_today_assigned": 3,
+            "opened_today_unassigned": 1,
+        },
+        network_kpis={},
+    )
+
+    html = render_dashboard(snapshot, None)
+
+    assert "Closed This Week" in html
+    assert "Closed This Month" in html
+    assert "Assigned Today" in html
+    assert "Unassigned Today" in html
+
+
 def test_render_dashboard_shows_cost_tiles_when_present():
     snapshot = SimpleNamespace(
         period_label="Test Period",

@@ -27,7 +27,11 @@ def export_excel(path: str, period_label: str, ticket_kpis: dict, network_kpis: 
     ticket_ws = wb.create_sheet("Ticket KPIs")
     ticket_ws.append(["Metric", "Value"])
     if not ticket_kpis.get("insufficient_data"):
-        for key in ["total_tickets", "open_tickets", "closed_tickets", "sla_compliance_pct", "mttr_hours"]:
+        for key in [
+            "total_tickets", "open_tickets", "closed_tickets", "sla_compliance_pct", "mttr_hours",
+            "closed_last_7_days", "closed_last_30_days",
+            "opened_today_total", "opened_today_assigned", "opened_today_unassigned",
+        ]:
             ticket_ws.append([key, ticket_kpis.get(key)])
         ticket_ws.append([])
         ticket_ws.append(["Category", "Count"])

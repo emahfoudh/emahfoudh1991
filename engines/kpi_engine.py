@@ -7,7 +7,9 @@ depends on an LLM being right.
 """
 
 from collections import Counter
-from datetime import datetime
+from datetime import datetime, timedelta
+
+UNASSIGNED_MARKER = "unassigned"
 
 
 def _duration_hours(opened_at: datetime, closed_at: datetime | None, now: datetime) -> float:
@@ -50,6 +52,18 @@ def calculate_ticket_kpis(tickets: list[dict], now: datetime) -> dict:
     priority_counts = Counter(t["priority"] for t in tickets)
     engineer_counts = Counter(t["assigned_to"] for t in tickets)
 
+    # Time-windowed views: "how much closed this week/month", "today's
+    # intake, assigned vs not" — the daily/weekly/monthly breakdown an
+    # IT Manager actually reports on, not just a single period total.
+    week_ago = now - timedelta(days=7)
+    month_ago = now - timedelta(days=30)
+    closed_last_7_days = sum(1 for t in closed if t["closed_at"] >= week_ago)
+    closed_last_30_days = sum(1 for t in closed if t["closed_at"] >= month_ago)
+
+    opened_today = [t for t in tickets if t["opened_at"].date() == now.date()]
+    opened_today_assigned = sum(1 for t in opened_today if t["assigned_to"] != UNASSIGNED_MARKER)
+    opened_today_unassigned = sum(1 for t in opened_today if t["assigned_to"] == UNASSIGNED_MARKER)
+
     return {
         "insufficient_data": False,
         "total_tickets": total,
@@ -62,6 +76,11 @@ def calculate_ticket_kpis(tickets: list[dict], now: datetime) -> dict:
         "priority_counts": dict(priority_counts),
         "workload_by_engineer": dict(engineer_counts),
         "top_category": category_counts.most_common(1)[0] if category_counts else None,
+        "closed_last_7_days": closed_last_7_days,
+        "closed_last_30_days": closed_last_30_days,
+        "opened_today_total": len(opened_today),
+        "opened_today_assigned": opened_today_assigned,
+        "opened_today_unassigned": opened_today_unassigned,
     }
 
 

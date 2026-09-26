@@ -184,6 +184,19 @@ Run it with `python run_sdp_pipeline.py` once `.env` has the
 real run so no real ticket data is sent to any third-party API until
 that's a deliberate decision, not a default.
 
+## Phase 8: daily/weekly/monthly ticket breakdowns
+
+`engines/kpi_engine.py`'s `calculate_ticket_kpis` now also computes:
+- **`closed_last_7_days`** / **`closed_last_30_days`** — a rolling
+  window count, not just a single period total
+- **`opened_today_assigned`** / **`opened_today_unassigned`** — today's
+  intake split by whether a technician has picked it up yet
+
+These appear as four extra tiles on the dashboard and a second row in
+the PDF/Excel exports. Same discipline as everything else here: pure
+function, tested (`tests/test_kpi_engine.py`), verified against both
+synthetic data and a live report/dashboard render before committing.
+
 ## Phase 5: cost/contract module
 
 `connectors/synthetic_contracts.py` reads vendor/service/cost/renewal

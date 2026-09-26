@@ -78,6 +78,10 @@ def render_dashboard(snapshot, report) -> str:
             _kpi_tile(f"{ticket_kpis.get('sla_compliance_pct', '-')}%", "SLA Compliance"),
             _kpi_tile(ticket_kpis.get("mttr_hours", "-"), "MTTR (hrs)"),
             _kpi_tile(len(network_kpis.get("flagged_sites", [])), "Sites Flagged"),
+            _kpi_tile(ticket_kpis.get("closed_last_7_days", "-"), "Closed This Week"),
+            _kpi_tile(ticket_kpis.get("closed_last_30_days", "-"), "Closed This Month"),
+            _kpi_tile(ticket_kpis.get("opened_today_assigned", "-"), "Assigned Today"),
+            _kpi_tile(ticket_kpis.get("opened_today_unassigned", "-"), "Unassigned Today"),
         ]
     if cost_kpis and not cost_kpis.get("insufficient_data"):
         tiles += [

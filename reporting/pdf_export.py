@@ -43,6 +43,14 @@ def export_pdf(path: str, period_label: str, ticket_kpis: dict, network_kpis: di
             <td><span class="kpi-value">{ticket_kpis.get('mttr_hours', '-')}</span><span class="kpi-label">MTTR (hours)</span></td>
           </tr>
         </table>
+        <table class="kpi-row">
+          <tr>
+            <td><span class="kpi-value">{ticket_kpis.get('closed_last_7_days', '-')}</span><span class="kpi-label">Closed This Week</span></td>
+            <td><span class="kpi-value">{ticket_kpis.get('closed_last_30_days', '-')}</span><span class="kpi-label">Closed This Month</span></td>
+            <td><span class="kpi-value">{ticket_kpis.get('opened_today_assigned', '-')}</span><span class="kpi-label">Assigned Today</span></td>
+            <td><span class="kpi-value">{ticket_kpis.get('opened_today_unassigned', '-')}</span><span class="kpi-label">Unassigned Today</span></td>
+          </tr>
+        </table>
         """
 
     flagged = network_kpis.get("flagged_sites", [])
