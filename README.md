@@ -205,6 +205,51 @@ the AI layer ever narrates them.
 `Vendor` and `Contract` tables (in `models/schema.py`) now store this
 data per-customer, same tenant-ready pattern as everything else.
 
+## Phase 7: scheduled email delivery
+
+`reporting/email_sender.py` sends a generated PDF as an email
+attachment via plain SMTP (works with Office 365, Gmail, or any
+standard provider — not locked to one vendor's API). It has no
+schedule and no default recipient of its own; it only sends what you
+tell it to, to whoever `REPORT_RECIPIENT_EMAIL` names.
+
+`send_scheduled_report.py` runs a pipeline (`synthetic`, `zoho`, or
+`sdp`) and then emails the result:
+
+```bash
+.venv/bin/python send_scheduled_report.py --pipeline sdp --dry-run
+```
+
+`--dry-run` generates the real report but only prints what would be
+emailed — use this until you trust the numbers. Drop `--dry-run` to
+actually send. If the pipeline itself fails, no email is sent —
+verified by test and by a live check where a missing credential
+correctly aborted before reaching the email step.
+
+**Before pointing this at a real person and an unattended schedule:**
+run it manually with `--dry-run` several times, check the PDF by eye,
+and only then set `REPORT_RECIPIENT_EMAIL` to their real address. A
+wrong number reaching a COO automatically, with no human in the
+loop, is a materially different risk than one caught in manual
+review — don't skip the dry-run step.
+
+**To actually run daily/weekly** (Windows Task Scheduler):
+1. Open **Task Scheduler** → **Create Basic Task**.
+2. Set the trigger to **Daily** or **Weekly**, whatever cadence you want.
+3. Action: **Start a program**.
+   - Program: full path to `.venv\Scripts\python.exe`
+   - Arguments: `send_scheduled_report.py --pipeline sdp`
+   - Start in: your project folder (e.g. `C:\Users\<you>\emahfoudh1991`)
+4. Finish, then right-click the task → **Run** once to confirm it works before trusting the schedule.
+
+Teams is a lighter-weight alternative for a text summary (via an
+incoming webhook), but can't cleanly attach a PDF without a heavier
+Microsoft Graph API integration — email is the better fit for
+"organized PDF," which is why it was built first.
+
+`tests/test_email_sender.py` covers this entirely with mocked
+`smtplib` — no real email is ever sent by the test suite.
+
 ## What's deliberately NOT built yet
 
-Real connectors for Sophos/FortiGate/M365 (Zoho Desk is the only real one so far), multi-tenancy, auth, scheduling, real network/bandwidth data source, a manual-entry UI for contract data (currently CSV only). Each of these is designed for, not built, until proven at the current phase.
+Real connectors for Sophos/FortiGate/M365, multi-tenancy, auth, real network/bandwidth data source, a manual-entry UI for contract data (currently CSV only), Teams delivery with file attachments. Each of these is designed for, not built, until proven at the current phase.
