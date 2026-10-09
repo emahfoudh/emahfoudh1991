@@ -44,6 +44,11 @@ $ErrorActionPreference = 'Stop'
 New-Item -ItemType Directory -Path $OutputFolder -Force | Out-Null
 function Out-Csv($Data, $Name) {
     $path = Join-Path $OutputFolder $Name
+    if (-not $Data) {
+        Set-Content -Path $path -Value 'No rows' -Encoding UTF8
+        Write-Host "  -> $Name (0 rows)" -ForegroundColor Green
+        return
+    }
     $Data | Export-Csv -Path $path -NoTypeInformation -Encoding UTF8
     Write-Host "  -> $Name ($(@($Data).Count) rows)" -ForegroundColor Green
 }
