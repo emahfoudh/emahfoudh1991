@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>h.ai Digital Intelligence — Engineering-led AI, Dubai</title>
+<meta name="description" content="We build AI and software that help engineering teams understand changes, test decisions and connect the whole project, from design to site. Based in Dubai.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="nav">
+  <div class="wrap nav-inner">
+    <a class="logo" href="#top">h<span>.</span>ai</a>
+    <button class="menu-btn" aria-expanded="false" aria-controls="nav-links">Menu</button>
+    <nav id="nav-links">
+      <a href="#services">Services</a>
+      <a href="#contech">Engineering projects</a>
+      <a href="#examples">Demos</a>
+      <a href="#about">About</a>
+      <a href="#founder">Founder</a>
+      <a href="#pricing">Pricing</a>
+      <span class="lang"><b>EN</b> <a href="#" lang="ar" title="Arabic version coming soon">العربية</a></span>
+      <a class="btn" href="#contact">Start a conversation →</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+  <section class="hero wrap">
+    <p class="eyebrow">Engineering-led AI · Dubai, UAE</p>
+    <h1>Engineering problems.<br><em>Intelligent solutions.</em></h1>
+    <p class="lead">We build AI and software that help engineering teams understand changes, test decisions and connect the whole project, from design to site. Based in Dubai. Built around your real problem.</p>
+    <p class="sectors">Engineering · Construction · Maintenance · Inspection · Technical Operations</p>
+
+    <div class="flow" role="tablist" aria-label="From design to site">
+      <button role="tab" aria-selected="true" data-panel="f1">Design change</button>
+      <button role="tab" aria-selected="false" data-panel="f2">Cost + programme</button>
+      <button role="tab" aria-selected="false" data-panel="f3">Site review</button>
+    </div>
+    <div class="panel-box">
+      <p id="f1" role="tabpanel">One changed design. A clearer view of what it affects.</p>
+      <p id="f2" role="tabpanel" hidden>See how the change moves quantities, cost and programme before anyone commits.</p>
+      <p id="f3" role="tabpanel" hidden>Give the site team the right review, on the right elements, at the right time.</p>
+    </div>
+    <a class="link" href="#contech">Explore the bigger picture →</a>
+  </section>
+
+  <section id="problem" class="band">
+    <div class="wrap">
+      <p class="num">01 / The problem</p>
+      <h2>What does h.ai actually do?</h2>
+      <p class="lead">We help you see what changed, understand what it affects and decide what happens next.</p>
+      <div class="grid2">
+        <div>
+          <h3>AI, in plain English</h3>
+          <p>We turn the information your team already has—drawings, models, measurements and documents—into tools that help people make better decisions.</p>
+        </div>
+        <div class="card">
+          <div class="flow small" role="tablist" aria-label="Scenarios">
+            <button role="tab" aria-selected="true" data-panel="s1">A drawing changed</button>
+            <button role="tab" aria-selected="false" data-panel="s2">Something changed on site</button>
+            <button role="tab" aria-selected="false" data-panel="s3">An asset needs attention</button>
+          </div>
+          <p id="s1" role="tabpanel">See which building elements, quantities and dependent tasks need review before the change reaches site.</p>
+          <p id="s2" role="tabpanel" hidden>Compare what was built with what was designed, and flag what needs a decision.</p>
+          <p id="s3" role="tabpanel" hidden>Bring inspection findings, history and drawings together so the team can prioritise the fix.</p>
+          <p class="note">Illustrative possibilities. People remain responsible for engineering decisions.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TODO: fill these sections with final copy -->
+  <section id="services" class="wrap stub"><h2>Services</h2><p>Content coming soon.</p></section>
+  <section id="contech" class="wrap stub"><h2>Engineering projects</h2><p>Content coming soon.</p></section>
+  <section id="examples" class="wrap stub"><h2>Demos</h2><p>Content coming soon.</p></section>
+  <section id="about" class="wrap stub"><h2>About</h2><p>Content coming soon.</p></section>
+  <section id="founder" class="wrap stub"><h2>Founder</h2><p>Content coming soon.</p></section>
+  <section id="pricing" class="wrap stub"><h2>Pricing</h2><p>Content coming soon.</p></section>
+
+  <section id="contact" class="band dark">
+    <div class="wrap">
+      <h2>Start a conversation</h2>
+      <p class="lead">Tell us about the engineering problem you're trying to solve.</p>
+      <div class="ctas">
+        <a class="btn" href="mailto:info@haiconsulting.ae">Email us</a>
+        <a class="btn ghost" href="https://wa.me/971504222422">WhatsApp</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="wrap footer">
+  <div>
+    <a class="logo" href="#top">h<span>.</span>ai</a> <strong>Digital Intelligence</strong>
+    <p>HAI Digital Intelligence - FZCO<br>Dubai, United Arab Emirates</p>
+    <p><a href="#founder">Meet the founder</a> · <a href="#contact">Start a conversation →</a></p>
+  </div>
+  <nav aria-label="Social">
+    <a href="https://www.linkedin.com/company/h-ai-consulting/">LinkedIn</a>
+    <a href="https://www.instagram.com/h.ai.digital/">Instagram</a>
+    <a href="mailto:info@haiconsulting.ae">Email</a>
+    <a href="https://wa.me/971504222422">WhatsApp</a>
+  </nav>
+</footer>
+
+<script>
+document.querySelectorAll('[role=tablist]').forEach(list => {
+  const tabs = [...list.querySelectorAll('[role=tab]')];
+  tabs.forEach(tab => tab.addEventListener('click', () => {
+    tabs.forEach(t => {
+      t.setAttribute('aria-selected', t === tab);
+      document.getElementById(t.dataset.panel).hidden = t !== tab;
+    });
+  }));
+});
+const btn = document.querySelector('.menu-btn'), nav = document.getElementById('nav-links');
+btn.addEventListener('click', () => {
+  const open = nav.classList.toggle('open');
+  btn.setAttribute('aria-expanded', open);
+});
+nav.addEventListener('click', e => { if (e.target.tagName === 'A') { nav.classList.remove('open'); btn.setAttribute('aria-expanded', false); } });
+</script>
+</body>
+</html>
