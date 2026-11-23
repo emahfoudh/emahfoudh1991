@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Create Account</title>
+  <style>
+    :root {
+      --bg: #f5f6f8; --card: #fff; --text: #1d2330; --muted: #5f6878;
+      --border: #cfd5df; --accent: #2457d6; --error: #c62828; --ok: #2e7d32;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 32px 16px; background: var(--bg); color: var(--text);
+      font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    }
+    form {
+      max-width: 520px; margin: 0 auto; background: var(--card);
+      padding: 28px; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,.08);
+    }
+    h1 { margin: 0 0 4px; font-size: 1.5rem; }
+    .note { margin: 0 0 20px; color: var(--muted); font-size: .9rem; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 480px) { .row { grid-template-columns: 1fr; } }
+    .field { margin-bottom: 16px; }
+    label { display: block; font-weight: 600; margin-bottom: 4px; }
+    .req { color: var(--error); }
+    input {
+      width: 100%; padding: 10px 12px; font: inherit;
+      border: 1px solid var(--border); border-radius: 6px;
+    }
+    input:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
+    input[aria-invalid="true"] { border-color: var(--error); }
+    .hint { color: var(--muted); font-size: .85rem; margin-top: 4px; }
+    .error { color: var(--error); font-size: .85rem; margin-top: 4px; min-height: 1em; }
+    button {
+      width: 100%; padding: 12px; font: inherit; font-weight: 600; color: #fff;
+      background: var(--accent); border: 0; border-radius: 6px; cursor: pointer;
+    }
+    button:hover { filter: brightness(1.08); }
+    #status { margin-top: 14px; font-weight: 600; color: var(--ok); }
+  </style>
+</head>
+<body>
+  <form id="signup" novalidate>
+    <h1>Create Account</h1>
+    <p class="note">Fields marked <span class="req">*</span> are required.</p>
+
+    <div class="row">
+      <div class="field">
+        <label for="forename">Forename <span class="req">*</span></label>
+        <input id="forename" name="forename" autocomplete="given-name" required>
+        <div class="error" id="forename-error"></div>
+      </div>
+      <div class="field">
+        <label for="surname">Surname <span class="req">*</span></label>
+        <input id="surname" name="surname" autocomplete="family-name" required>
+        <div class="error" id="surname-error"></div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="email">Email <span class="req">*</span></label>
+      <input id="email" name="email" type="email" autocomplete="email" required>
+      <div class="error" id="email-error"></div>
+    </div>
+
+    <div class="field">
+      <label for="password">Password <span class="req">*</span></label>
+      <input id="password" name="password" type="password" autocomplete="new-password"
+             required minlength="8">
+      <div class="hint">At least 8 characters, including a letter and a number.</div>
+      <div class="error" id="password-error"></div>
+    </div>
+
+    <div class="field">
+      <label for="homeTel">Home Tel</label>
+      <input id="homeTel" name="homeTel" type="tel" autocomplete="tel">
+      <div class="error" id="homeTel-error"></div>
+    </div>
+
+    <div class="field">
+      <label for="mobileTel">Mobile Tel <span class="req">*</span></label>
+      <input id="mobileTel" name="mobileTel" type="tel" autocomplete="tel" required>
+      <div class="error" id="mobileTel-error"></div>
+    </div>
+
+    <div class="field">
+      <label for="workTel">Work Tel</label>
+      <input id="workTel" name="workTel" type="tel" autocomplete="tel">
+      <div class="error" id="workTel-error"></div>
+    </div>
+
+    <button type="submit">Register</button>
+    <div id="status" role="status" aria-live="polite"></div>
+  </form>
+
+  <script>
+    const form = document.getElementById('signup');
+    const phoneRe = /^\+?[0-9 ()-]{7,20}$/;
+    const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    const rules = {
+      forename:  v => v ? '' : 'Please enter your forename.',
+      surname:   v => v ? '' : 'Please enter your surname.',
+      email:     v => !v ? 'Please enter your email.' : emailRe.test(v) ? '' : 'Please enter a valid email address.',
+      password:  v => !v ? 'Please enter a password.'
+                    : v.length < 8 ? 'Password must be at least 8 characters.'
+                    : !/[A-Za-z]/.test(v) || !/[0-9]/.test(v) ? 'Password must include a letter and a number.' : '',
+      homeTel:   v => !v || phoneRe.test(v) ? '' : 'Please enter a valid phone number.',
+      mobileTel: v => !v ? 'Please enter your mobile number.' : phoneRe.test(v) ? '' : 'Please enter a valid phone number.',
+      workTel:   v => !v || phoneRe.test(v) ? '' : 'Please enter a valid phone number.',
+    };
+
+    function check(name) {
+      const input = form.elements[name];
+      const value = name === 'password' ? input.value : input.value.trim();
+      const msg = rules[name](value);
+      input.setAttribute('aria-invalid', msg ? 'true' : 'false');
+      input.setAttribute('aria-describedby', name + '-error');
+      document.getElementById(name + '-error').textContent = msg;
+      return !msg;
+    }
+
+    Object.keys(rules).forEach(name =>
+      form.elements[name].addEventListener('blur', () => check(name)));
+
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      const status = document.getElementById('status');
+      const invalid = Object.keys(rules).filter(n => !check(n));
+      if (invalid.length) {
+        status.textContent = '';
+        form.elements[invalid[0]].focus();
+        return;
+      }
+      // Hook up to your backend here, e.g. fetch('/api/register', { method: 'POST', body: new FormData(form) })
+      status.textContent = 'Registration details are valid.';
+    });
+  </script>
+</body>
+</html>
